@@ -1,31 +1,11 @@
 # -*- coding: utf-8 -*-
-import abc
 import numpy as np
 from typing import Optional
+from nn.concept import Forward, Backward, Adaptable
 from nn.function import Function
 
 
-class Forward(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def forward(self):
-        """
-        Forward calculation.
-        :return:
-        """
-        pass
-
-
-class Backward(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def backward(self):
-        """
-        Backward calculation.
-        :return:
-        """
-        pass
-
-
-class Neuron(Forward, Backward):
+class Neuron(Forward, Backward, Adaptable):
     def __init__(self, name='', bias: Optional[np.float] = None, activate_function: Function = Function.sigmoid()):
         # input_list_values: the links that connect to this neuron
         self.__input_list = []
@@ -113,12 +93,13 @@ class Neuron(Forward, Backward):
         return delta_result
     
     def connect(self, other, weight=None):
+        from nn.connection import connect
         return connect(self, other, weight)
-    
-    def commit(self, ita):
-        self.__bias += ita * self.backward()
+
+    def commit(self, rate):
+        self.__bias += rate * self.backward()
         for link in self.__output_list:
-            link.commit(ita)
+            link.commit(rate)
         self.__target = None
 
 
@@ -136,15 +117,7 @@ class Link(Forward, Backward):
     
     def backward(self):
         return self.destination.backward() * self.weight
-    
-    def commit(self, ita):
-        self.weight += ita * self.destination.backward() * self.source.forward()
-        # self.destination.commit(ita)
 
-
-def connect(neuron_1: Neuron, neuron_2: Neuron, weight: Optional[np.float] = None) -> Link:
-    weight = weight if weight is not None else np.random.rand()
-    link = Link(neuron_1, neuron_2, weight)
-    neuron_1.output_list.append(link)
-    neuron_2.input_list.append(link)
-    return link
+    def commit(self, rate):
+        self.weight += rate * self.destination.backward() * self.source.forward()
+        # self.destination.commit(rate)
