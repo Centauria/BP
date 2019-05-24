@@ -5,16 +5,16 @@ import abc
 class Forward(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def forward(self):
-        pass
+        raise NotImplementedError
 
 
 class Backward(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def backward(self):
-        pass
+        raise NotImplementedError
 
 
 class Adaptable(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def commit(self, rate):
-        pass
+        raise NotImplementedError
