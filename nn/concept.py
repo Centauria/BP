@@ -16,5 +16,5 @@ class Backward(metaclass=abc.ABCMeta):
 
 class Adaptable(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def commit(self, rate):
+    def commit(self, *args):
         raise NotImplementedError

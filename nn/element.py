@@ -2,11 +2,13 @@
 import numpy as np
 from typing import Optional
 from nn.concept import Forward, Backward, Adaptable
-from nn.function import Function
+from nn.function import Function, Initializer
 
 
 class Neuron(Forward, Backward, Adaptable):
-    def __init__(self, name='', bias: Optional[np.float] = None, activate_function: Function = Function.sigmoid()):
+    def __init__(self, name='', bias: Optional[np.float] = None,
+                 activate_function: Function = Function.sigmoid(),
+                 initializer: () = Initializer.uniform()):
         # input_list_values: the links that connect to this neuron
         self.__input_list = []
         # output: the links that this neuron connects to
@@ -14,7 +16,7 @@ class Neuron(Forward, Backward, Adaptable):
         self.__f: Function = activate_function
         self.name = name
         # short-circuit variables
-        self.__bias: np.float = bias if bias is not None else np.random.rand()
+        self.__bias: np.float = bias if bias is not None else initializer()
         # cache variables for temporary calculation, set to None after each commit
         self.__target: Optional[np.float] = None
         self.__delta_b: Optional[np.float] = None
@@ -65,15 +67,15 @@ class Neuron(Forward, Backward, Adaptable):
     @property
     def input_list(self) -> list:
         return self.__input_list
-
+    
     @property
     def v(self):
         return self.__bias + np.sum(self.input_list_values)
-
+    
     @property
     def grad(self):
         return self.__f.d(self.__bias + np.sum(self.input_list_values))
-
+    
     @property
     def delta_b(self):
         return self.__delta_b
@@ -111,19 +113,23 @@ class Neuron(Forward, Backward, Adaptable):
             link.commit(rate)
         self.__bias += rate * self.__delta_b
         self.clear_cache()
-
+    
     def build_cache(self):
         self.__delta_b = self.backward() * self.grad
         for link in self.__input_list:
             link.build_cache()
-
+    
     def clear_cache(self):
         self.__target = None
         self.__delta_b = None
-
+    
     def connect(self, other, weight=None):
         from nn.connection import connect
         return connect(self, other, weight)
+    
+    def disconnect(self, other=None):
+        from nn.connection import disconnect
+        return disconnect(self, other)
 
 
 class Link(Forward, Backward, Adaptable):

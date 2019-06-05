@@ -53,3 +53,27 @@ class Function:
         one = lambda x: level
         zero = lambda x: 0
         return Function(one, zero)
+
+
+class Initializer:
+    @staticmethod
+    def random_normal(mean=0.0, stddev=1.0, seed=None):
+        np.random.seed(seed)
+        return lambda: np.random.randn() * stddev + mean
+    
+    @staticmethod
+    def truncated_normal(mean=0.0, stddev=1.0, seed=None):
+        np.random.seed(seed)
+        
+        def func():
+            result = np.random.randn()
+            while result >= 2:
+                result = np.random.randn()
+            return result * stddev + mean
+        
+        return func
+    
+    @staticmethod
+    def uniform(low=0.0, high=1.0, seed=None):
+        np.random.seed(seed)
+        return lambda: np.random.rand() * (high - low) + low
