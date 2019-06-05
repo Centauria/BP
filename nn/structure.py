@@ -48,10 +48,18 @@ class Layer(Forward, Backward, Adaptable):
         for c in self.cells:
             c.commit(rate)
 
+    def build_cache(self):
+        for c in self.cells:
+            c.build_cache()
+
+    def clear_cache(self):
+        for c in self.cells:
+            c.clear_cache()
+
 
 class InputLayer(Layer):
-    def __init__(self, length: int, name='', activate_function=Function.sigmoid()):
-        super(InputLayer, self).__init__(length, name, activate_function)
+    def __init__(self, length: int, name=''):
+        super(InputLayer, self).__init__(length, name, Function.bias(0))
         self.__data = np.zeros((length,))
     
     @property

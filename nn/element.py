@@ -15,7 +15,9 @@ class Neuron(Forward, Backward, Adaptable):
         self.name = name
         # short-circuit variables
         self.__bias: np.float = bias if bias is not None else np.random.rand()
+        # cache variables for temporary calculation, set to None after each commit
         self.__target: Optional[np.float] = None
+        self.__delta_b: Optional[np.float] = None
     
     def __repr__(self):
         return '(%.3f, [#%i, %.3f], %s, [#%i, %s], %.3f)' % (
@@ -63,6 +65,18 @@ class Neuron(Forward, Backward, Adaptable):
     @property
     def input_list(self) -> list:
         return self.__input_list
+
+    @property
+    def v(self):
+        return self.__bias + np.sum(self.input_list_values)
+
+    @property
+    def grad(self):
+        return self.__f.d(self.__bias + np.sum(self.input_list_values))
+
+    @property
+    def delta_b(self):
+        return self.__delta_b
     
     @property
     def target(self) -> np.float:
@@ -71,6 +85,7 @@ class Neuron(Forward, Backward, Adaptable):
     @target.setter
     def target(self, target: Optional[np.float]):
         self.__target = target
+        self.build_cache()
     
     @property
     def activate_function(self):
@@ -85,29 +100,39 @@ class Neuron(Forward, Backward, Adaptable):
         return result
     
     def backward(self) -> np.float:
-        v = self.__bias + np.sum(self.input_list_values)
         if self.__target is None:
-            delta_result = self.__f.d(v) * np.sum([l.backward() for l in self.__output_list])
+            delta_result = np.sum([l.backward() for l in self.__output_list])
         else:
-            delta_result = self.__f.d(v) * (self.__target - self.forward())
+            delta_result = self.__target - self.forward()
         return delta_result
     
+    def commit(self, rate):
+        for link in self.__input_list:
+            link.commit(rate)
+        self.__bias += rate * self.__delta_b
+        self.clear_cache()
+
+    def build_cache(self):
+        self.__delta_b = self.backward() * self.grad
+        for link in self.__input_list:
+            link.build_cache()
+
+    def clear_cache(self):
+        self.__target = None
+        self.__delta_b = None
+
     def connect(self, other, weight=None):
         from nn.connection import connect
         return connect(self, other, weight)
 
-    def commit(self, rate):
-        self.__bias += rate * self.backward()
-        for link in self.__output_list:
-            link.commit(rate)
-        self.__target = None
 
-
-class Link(Forward, Backward):
+class Link(Forward, Backward, Adaptable):
     def __init__(self, source: Optional[Neuron], destination: Optional[Neuron], weight=0.0):
         self.source = source
         self.destination = destination
         self.weight = weight
+        # cache variables for temporary calculation, set to None after each commit
+        self.__delta_w: Optional[np.float] = None
     
     def __repr__(self):
         return '%s <--%.10f--> %s' % (self.source, self.weight, self.destination)
@@ -119,5 +144,11 @@ class Link(Forward, Backward):
         return self.destination.backward() * self.weight
 
     def commit(self, rate):
-        self.weight += rate * self.destination.backward() * self.source.forward()
-        # self.destination.commit(rate)
+        self.weight += rate * self.__delta_w
+        self.clear_cache()
+
+    def build_cache(self):
+        self.__delta_w = self.source.forward() * self.destination.delta_b
+
+    def clear_cache(self):
+        self.__delta_w = None

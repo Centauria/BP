@@ -6,7 +6,7 @@ from nn.element import Neuron, Link
 
 
 def connect(neuron_1: Neuron, neuron_2: Neuron, weight: Optional[np.float] = None) -> Link:
-    weight = weight if weight is not None else np.random.rand()
+    weight = weight if weight is not None else (np.random.rand() * 2 - 1)
     link = Link(neuron_1, neuron_2, weight)
     neuron_1.output_list.append(link)
     neuron_2.input_list.append(link)
